@@ -37,3 +37,11 @@ models opened in the app remain in the visitor's tab. No analytics or upload API
 Source origin: amaanmalik/streetRacer showroom, copied November 2026. Three.js
 and Vite retain their respective MIT notices under THIRD_PARTY_NOTICES/. This
 repository does not grant redistribution rights to models you open yourself.
+
+## Verified checks
+
+`npm test` and the production build pass. `node tests/browser.mjs` (set
+`CHROME_PATH` when Chromium is elsewhere) exercises a generated animated GLB,
+local opening, isolation, animation, navigation, inventory download, drag-and-drop,
+malformed input and 390px layout. No game models are included. These checks do not
+certify large environment performance or physical-phone memory limits.

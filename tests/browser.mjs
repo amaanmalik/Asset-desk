@@ -10,7 +10,7 @@ function model(){
 const server=await preview({preview:{host:'127.0.0.1',port:0}});
 const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/chromium',headless:true,args:['--enable-unsafe-swiftshader']});
 try{
- const base=`http://127.0.0.1:${server.httpServer.address().port}`,page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[],requests=[];
+ const base=`http://127.0.0.1:${server.httpServer.address().port}`,page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[],requests=[];page.setDefaultTimeout(20000);
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push({url:r.url(),method:r.method()}));
  await page.goto(base+'/?inspect=1');await page.locator('#status').filter({hasText:'Drop a GLB'}).waitFor();
  await page.locator('#files').setInputFiles({name:'sample.glb',mimeType:'model/gltf-binary',buffer:model()});
@@ -24,8 +24,10 @@ try{
  const downloadPromise=page.waitForEvent('download');await page.locator('#export').click();const download=await downloadPromise;assert.equal(download.suggestedFilename(),'asset-desk-inventory.json');
  await mkdir('evidence',{recursive:true});await page.screenshot({path:'evidence/desktop.png'});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'evidence/mobile.png'});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.evaluate(bytes=>{const dt=new DataTransfer();dt.items.add(new File([new Uint8Array(bytes)],'dropped.glb',{type:'model/gltf-binary'}));window.dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true}));}, [...model()]);
+ await page.waitForFunction(()=>__showroomInspect().ready&&document.querySelector('#title').textContent==='dropped.glb');assert.equal(await page.locator('#count').textContent(),'2');
  await page.locator('#files').setInputFiles({name:'bad.glb',mimeType:'model/gltf-binary',buffer:Buffer.from('invalid')});await page.locator('#status').filter({hasText:'Invalid GLB header'}).waitFor();
- assert.equal(await page.locator('#title').textContent(),'sample.glb');
+ assert.equal(await page.locator('#title').textContent(),'dropped.glb');
  assert(!requests.some(r=>r.method!=='GET'||(!r.url.startsWith(base)&&!r.url.startsWith('blob:')&&!r.url.startsWith('data:'))));assert.deepEqual(errors,[]);
  console.log('PASS: local GLB, scene inspection/isolation, animation, fly/orbit, export, malformed input, mobile layout; no uploads/external requests');
 }finally{await browser.close();server.httpServer.closeAllConnections();await new Promise(r=>server.httpServer.close(r));}
